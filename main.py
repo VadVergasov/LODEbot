@@ -49,13 +49,13 @@ def send(value, message):
     submit = driver.find_element_by_class_name("btn-send")
     submit.click()
 
-    time.sleep(5)
+    time.sleep(3)
 
     response = driver.find_element_by_class_name("form-note-response")
     if response.text == "Ваша заявка принята. В течение часа с Вами свяжется оператор.":
         bot.send_message(message.chat.id, response.text)
     else:
-        bot.send_message(message.chat.id, "Возникла ошибка")
+        bot.send_message(message.chat.id, "Возникла ошибка. Повторите попытку /new")
     
     driver.close()
 
@@ -186,6 +186,11 @@ def addPhone(message):
         order[message.chat.id]['phone'] = message.contact.phone_number[5:]
     keyboard = types.ReplyKeyboardRemove()
     bot.send_message(message.chat.id, "Отправьте свое имя", reply_markup=keyboard)
+
+#Author message
+@bot.message_handler(commands=['author'])
+def author(message):
+    bot.send_message(message.chat.id, "@VadVergasov разрабработал данный бот. Вы можете ему также писать о любых неисправностях данного бота.")
 
 #All other messages
 @bot.message_handler()
