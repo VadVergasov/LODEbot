@@ -1,13 +1,19 @@
-# -*- coding: utf-8 -*-
+﻿# -*- coding: utf-8 -*-
 
+from selenium import webdriver
 import http.client as http
-import telebot
 import telebot.types as types
-import config
-import urllib
-import re
+import config, urllib, re, time, telebot
 
-headers = {"user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/69.0.3497.100 Safari/537.36"}
+headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/69.0.3497.100 Safari/537.36",
+    "Host": "www.lode.by",
+    "Connection": "keep-alive",
+    "Accept-Encoding": "gzip, deflate, br",
+    "Accept": "*/*",
+    "Origin": "https://www.lode.by",
+    "X-Requested-With": "XMLHttpRequest",
+    "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    "Referer": "https://www.lode.by/"}
 
 order = {}
 
@@ -16,20 +22,42 @@ bot = telebot.TeleBot(config.token)
 def checkContact(message):
     if message.contact == None:
         return False
-    if message.contact.user_id == message.from_user.id and re.search("^\+(375){1}[0-9]{9}", message.contact.phone_number):
+    if message.contact.user_id == message.from_user.id and re.search("^\+*(375){1}[0-9]{9}", message.contact.phone_number):
         return True
     return False
 
 #sending request to site
 def send(value, message):
-    r = http.HTTPSConnection("www.lode.by")
-    r.request("POST", "/zapros/", headers=headers, body=value)
-    res = r.getresponse()
-    if str(res.status) == str(200):
-        bot.send_message(message.chat.id, "Запрос отправлен. Ожидайте звонка в течении часа.")
+    driver = webdriver.Chrome()
+    driver.get("https://www.lode.by/")
+
+    town = driver.find_element_by_id("form-app-city")
+    town.send_keys(value['city'])
+
+    doctor = driver.find_element_by_id("form-app-doctor")
+    doctor.send_keys(value['doctor'])
+
+    name = driver.find_element_by_id("form-app-name")
+    name.send_keys(value['name'])
+
+    tel_code = driver.find_element_by_id("form-app-code")
+    tel_code.send_keys(value['tel-code'])
+
+    tel = driver.find_element_by_id("form-app-tel")
+    tel.send_keys(value['tel'])
+
+    submit = driver.find_element_by_class_name("btn-send")
+    submit.click()
+
+    time.sleep(5)
+
+    response = driver.find_element_by_class_name("form-note-response")
+    if response.text == "Ваша заявка принята. В течение часа с Вами свяжется оператор.":
+        bot.send_message(message.chat.id, response.text)
     else:
-        print(res.status)
-        print(res.reason)
+        bot.send_message(message.chat.id, "Возникла ошибка")
+    
+    driver.close()
 
 #Checking if this is a name
 def addInfo(message):
@@ -112,7 +140,8 @@ def Answer(message):
         bot.send_message(message.chat.id, "Выберите врача", reply_markup = keyboard)
     elif message.text in config.phones:
         order[message.chat.id]['phone_code'] = message.text
-        bot.send_message(message.chat.id, "Напишите свой телефон (последние 7 цифр)", reply_markup = keyboard)
+        keyboard = types.ReplyKeyboardRemove()
+        bot.send_message(message.chat.id, "Напишите свой телефон (последние 7 цифр)", reply_markup=keyboard)
     elif message.text in config.doctors:
         order[message.chat.id]['doctor'] = message.text
         keyboard = types.ReplyKeyboardMarkup(row_width = len(config.phones), one_time_keyboard = True, resize_keyboard = True)
@@ -149,8 +178,12 @@ def Name(message):
 @bot.message_handler(content_types = ['contact'], func = checkContact)
 def addPhone(message):
     addUser(message)
-    order[message.chat.id]['phone_code'] = message.contact.phone_number[4:6]
-    order[message.chat.id]['phone'] = message.contact.phone_number[6:]
+    if message.contact.phone_number[0] == '+':
+        order[message.chat.id]['phone_code'] = "0" + message.contact.phone_number[4:6]
+        order[message.chat.id]['phone'] = message.contact.phone_number[6:]
+    else:
+        order[message.chat.id]['phone_code'] = "0" + message.contact.phone_number[3:5]
+        order[message.chat.id]['phone'] = message.contact.phone_number[5:]
     keyboard = types.ReplyKeyboardRemove()
     bot.send_message(message.chat.id, "Отправьте свое имя", reply_markup=keyboard)
 
@@ -158,6 +191,7 @@ def addPhone(message):
 @bot.message_handler()
 def Ans(message):
     if message.text != "Отправить":
+        print(message.text)
         return 0
     for i in range(len(config.allkeys)):
         if config.allkeys[i] not in order[message.chat.id].keys():
@@ -170,8 +204,11 @@ def Ans(message):
         "tel-code": order[message.chat.id]['phone_code'],
         "tel": order[message.chat.id]['phone'],
         "city": order[message.chat.id]['town']}
-    body = urllib.parse.urlencode(values)
-    send(body, message)
+    send(values, message)
+
+@bot.message_handler(content_types=['contact'])
+def log(message):
+    print(message.contact)
 
 if __name__ == '__main__':
     bot.polling(none_stop = True, timeout = 5)
