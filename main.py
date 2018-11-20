@@ -1,24 +1,14 @@
 ﻿# -*- coding: utf-8 -*-
 
 from selenium import webdriver
-import http.client as http
 import telebot.types as types
-import config, urllib, re, time, telebot
-
-headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/69.0.3497.100 Safari/537.36",
-    "Host": "www.lode.by",
-    "Connection": "keep-alive",
-    "Accept-Encoding": "gzip, deflate, br",
-    "Accept": "*/*",
-    "Origin": "https://www.lode.by",
-    "X-Requested-With": "XMLHttpRequest",
-    "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
-    "Referer": "https://www.lode.by/"}
+import config, re, time, telebot
 
 order = {}
 
 bot = telebot.TeleBot(config.token)
 
+#check contact holder
 def checkContact(message):
     if message.contact == None:
         return False
@@ -83,6 +73,12 @@ def check(message):
 def start(message):
     addUser(message)
     bot.send_message(message.chat.id, "Вас приветсвует бот, который будет отправлять запрос в медицинскый центр ЛОДЭ, и Вам не придется заходить на сайт для записи. Для начала напишите /new")
+
+#On cancel command
+@bot.message_handler(commands=['cancel'])
+def Cancel(message):
+    order[message.chat.id]={}
+    bot.send_message(message.chat.id, "Ваша информация сброшена. Для записи нажмите на /new")
 
 #On new sending starting dialog
 @bot.message_handler(commands = ['new'])
@@ -216,4 +212,4 @@ def log(message):
     print(message.contact)
 
 if __name__ == '__main__':
-    bot.polling(none_stop = True, timeout = 5)
+    bot.polling(none_stop = True, timeout = 120)
