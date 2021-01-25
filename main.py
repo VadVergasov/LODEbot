@@ -26,7 +26,7 @@ from lxml import etree, html
 
 order = {}
 
-with open("CONFIG.json", "r") as f:
+with open("config.json", "r") as f:
     CONFIG = json.load(f)
 
 bot = telebot.TeleBot(CONFIG["token"])
