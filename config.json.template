@@ -1,0 +1,9 @@
+{
+    "token": "{str}",
+    "allkeys": [
+        "city",
+        "phone",
+        "name",
+        "doctor"
+    ]
+}
