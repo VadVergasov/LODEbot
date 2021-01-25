@@ -58,6 +58,8 @@ def update_info(message):
     for doctor in tree.xpath(
         "/html/body/div/div[2]/div/div[2]/div[2]/form/div[2]/div/div/div"
     ):
+        if doctor.xpath("text()")[0] == "Сначала выберите регион":
+            continue
         doctors[doctor.xpath("text()")[0]] = doctor.xpath("@data-value")[0]
     with open("CONFIG.json", "w") as f:
         CONFIG["doctors"] = doctors
@@ -115,7 +117,7 @@ def addUser(message):
 
 # Checking if message is from button
 def check(message):
-    if message.text in CONFIG["cities"] or message.text in CONFIG["doctors"]:
+    if message.text in CONFIG["cities"] or message.text in CONFIG["doctors"].keys():
         return True
     return False
 
