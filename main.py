@@ -17,12 +17,11 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 import json
 import re
-import time
 
 import requests
 import telebot
 import telebot.types as types
-from lxml import etree, html
+from lxml import html
 
 order = {}
 
@@ -33,7 +32,7 @@ bot = telebot.TeleBot(CONFIG["token"])
 
 # check contact holder
 def checkContact(message):
-    if message.contact == None:
+    if message.contact is None:
         return False
     if message.contact.user_id == message.from_user.id and re.search(
         r"^\+*(375){1}[0-9]{9}", message.contact.phone_number
@@ -94,7 +93,7 @@ def send(message):
         },
     )
     tree = html.fromstring(request.text)
-    if len(tree.xpath("//div[@class='text-success']")):
+    if tree.xpath("//div[@class='text-success']"):
         bot.reply_to(message, "Заявка отправлена успешно!")
     else:
         bot.reply_to(message, "Повторите попытку позже.")
@@ -102,7 +101,7 @@ def send(message):
 
 # Checking if this is a name
 def addInfo(message):
-    if message.text == None:
+    if message.text is None:
         return False
     if message.text != "Отправить" and re.search("^[А-Я]+[а-я]+$", message.text):
         return True
